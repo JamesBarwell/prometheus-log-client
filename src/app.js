@@ -27,19 +27,16 @@ module.exports = class PromLog {
     }
 
     parseLogLine(line) {
-        for (let i in this.matchers) {
-            let matcher = this.matchers[i]
-            debug('attempting regex: %s', matcher.regex)
-            let matches = line.match(matcher.regex)
-            if (matches === null) {
-                continue
+        this.matchers.map(matcher => {
+            return {
+                result: line.match(matcher.regex),
+                callback: matcher.callback
             }
-
-            let result = matcher.callback(matches)
-            if (result) {
-                this.update(result)
-            }
-        }
+        }).filter(matcher => {
+            return matcher.result !== null
+        }).forEach(matcher => {
+            this.updateMetrics(matcher.callback(matcher.result))
+        })
     }
 
     createCounter(regex, callback) {
@@ -49,7 +46,7 @@ module.exports = class PromLog {
         })
     }
 
-    update(result) {
+    updateMetrics(result) {
         let name = result.name
         let help = result.help
         let labels = result.labels
