@@ -42,5 +42,17 @@ promLog.createCounter(
     }
 )
 
+// Update active users gauge
+promLog.createGauge(
+    /[A-Z]+ stats.active_users ([0-9]+)/,
+    matches => {
+        return {
+            name: 'active_users',
+            help: 'Current active users in application',
+            value: matches[1]
+        }
+    }
+)
+
 // Tail app logs
 promLog.watch('./test.log')

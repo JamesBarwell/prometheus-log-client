@@ -27,6 +27,10 @@ const getLogLine = () => {
         'WARN session.read { "host": "ses01", "errorCode": 1 }',
         'NOTICE user.login',
         'NOTICE user.transaction',
+        'INFO stats.active_users 143',
+        'INFO stats.active_users 124',
+        'INFO stats.active_users 160',
+        'INFO stats.active_users 127',
     ]
 
     const lineIndex = Math.floor(Math.random() * lines.length)

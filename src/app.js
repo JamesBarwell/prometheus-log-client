@@ -3,7 +3,6 @@ const Tail = require('always-tail')
 const debug = require('debug')('prometheus-logs')
 const Prometheus = require('prometheus-client-js')
 
-
 module.exports = class PromLog {
     constructor() {
         this.client = new Prometheus()
@@ -27,40 +26,93 @@ module.exports = class PromLog {
     }
 
     parseLogLine(line) {
-        this.matchers.map(matcher => {
+        this.matchers
+        // Match line
+        .map(matcher => {
             return {
                 result: line.match(matcher.regex),
-                callback: matcher.callback
+                callback: matcher.callback,
+                type: matcher.type
             }
-        }).filter(matcher => {
+        })
+        // Remove non-matches
+        .filter(matcher => {
             return matcher.result !== null
-        }).forEach(matcher => {
-            this.updateMetrics(matcher.callback(matcher.result))
+        })
+        // Get metric update
+        .map(matcher => {
+            return {
+                update: matcher.callback(matcher.result),
+                type: matcher.type
+            }
+        })
+        // Update counters
+        .forEach(matcher => {
+            if (matcher.type === 'counter') {
+                this.updateCounter(matcher.update)
+            } else if (matcher.type === 'gauge') {
+                this.updateGauge(matcher.update)
+            }
         })
     }
 
     createCounter(regex, callback) {
         this.matchers.push({
+            type: 'counter',
             regex: regex,
             callback: callback
         })
     }
 
-    updateMetrics(result) {
-        let name = result.name
-        let help = result.help
-        let labels = result.labels
+    createGauge(regex, callback) {
+        this.matchers.push({
+            type: 'gauge',
+            regex: regex,
+            callback: callback
+        })
+    }
 
-        if (!this.metrics[name]) {
-            debug('creating metric %s', name)
+    updateCounter(data) {
+        let name = data.name
+        let help = data.help
+        let labels = data.labels
+
+        this.upsertMetric('counter', name, help)
+
+        debug('increment counter %s with labels %s', name, labels)
+        this.metrics[name].increment(labels)
+    }
+
+    updateGauge(data) {
+        let name = data.name
+        let help = data.help
+        let labels = data.labels || {}
+
+        this.upsertMetric('gauge', name, help)
+
+        debug('increment guage %s with labels %s', name, labels)
+        this.metrics[name].set(labels, data.value)
+    }
+
+    upsertMetric(type, name, help) {
+        if (this.metrics[name]) {
+            return
+        }
+
+        debug('creating metric %s %s', type, name)
+
+        if (type === 'counter') {
             this.metrics[name] = this.client.createCounter({
+                name: name,
+                help: help
+            })
+        } else if (type === 'gauge') {
+            this.metrics[name] = this.client.createGauge({
                 name: name,
                 help: help
             })
         }
 
-        debug('increment counter %s with labels %s', name, labels)
-        this.metrics[name].increment(labels)
     }
 
 }
