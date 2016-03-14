@@ -54,5 +54,26 @@ promLog.createGauge(
     }
 )
 
+// Match request.end and create histogram of response times
+promLog.createHistogram(
+    /[A-Z]+ http.request.end (.*)/,
+    matches => {
+        let json
+        try {
+            json = JSON.parse(matches[1])
+        } catch (e) {
+            // throw away unparsable lines
+            return
+        }
+
+        return {
+            name: 'response_times',
+            help: 'Bucketed response times',
+            buckets: [ 10, 20, 30, 40, 50, 75, 100, 200 ],
+            value: json.time
+        }
+    }
+)
+
 // Tail app logs
 promLog.watch('./test.log')

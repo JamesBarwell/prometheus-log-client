@@ -48,71 +48,57 @@ module.exports = class PromLog {
         })
         // Update counters
         .forEach(matcher => {
-            if (matcher.type === 'counter') {
-                this.updateCounter(matcher.update)
-            } else if (matcher.type === 'gauge') {
-                this.updateGauge(matcher.update)
-            }
+            this.updateMetric(matcher.type, matcher.update)
+        })
+    }
+
+    createMetric(type, regex, callback) {
+        this.matchers.push({
+            type: type,
+            regex: regex,
+            callback: callback
         })
     }
 
     createCounter(regex, callback) {
-        this.matchers.push({
-            type: 'counter',
-            regex: regex,
-            callback: callback
-        })
+        this.createMetric('counter', regex, callback)
     }
 
     createGauge(regex, callback) {
-        this.matchers.push({
-            type: 'gauge',
-            regex: regex,
-            callback: callback
-        })
+        this.createMetric('gauge', regex, callback)
     }
 
-    updateCounter(data) {
-        let name = data.name
-        let help = data.help
-        let labels = data.labels
-
-        this.upsertMetric('counter', name, help)
-
-        debug('increment counter %s with labels %s', name, labels)
-        this.metrics[name].increment(labels)
+    createHistogram(regex, callback) {
+        this.createMetric('histogram', regex, callback)
     }
 
-    updateGauge(data) {
-        let name = data.name
-        let help = data.help
+    updateMetric(type, data) {
         let labels = data.labels || {}
+        let value = data.value || null
 
-        this.upsertMetric('gauge', name, help)
+        debug('increment metric %s %s', type, data.name)
+        this.upsertMetric(type, data)
 
-        debug('increment guage %s with labels %s', name, labels)
-        this.metrics[name].set(labels, data.value)
+        if (type === 'counter') {
+            this.metrics[data.name].increment(labels)
+        } else if (type === 'gauge') {
+            this.metrics[data.name].set(labels, value)
+        } else if (type === 'histogram') {
+            this.metrics[data.name].observe(value)
+        }
     }
 
-    upsertMetric(type, name, help) {
-        if (this.metrics[name]) {
+    upsertMetric(type, data) {
+        if (this.metrics[data.name]) {
             return
         }
 
-        debug('creating metric %s %s', type, name)
+        debug('creating metric %s %s', type, data.name)
 
-        if (type === 'counter') {
-            this.metrics[name] = this.client.createCounter({
-                name: name,
-                help: help
-            })
-        } else if (type === 'gauge') {
-            this.metrics[name] = this.client.createGauge({
-                name: name,
-                help: help
-            })
-        }
+        let createFunction = 'create' +
+            type.charAt(0).toUpperCase() + type.substring(1)
 
+        this.metrics[data.name] = this.client[createFunction](data)
     }
 
 }
