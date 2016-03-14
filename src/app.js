@@ -15,9 +15,9 @@ module.exports = class PromLog {
         this.client.createServer(port)
     }
 
-    watch(path) {
+    watch(path, split) {
         debug('tailing logs at: %s', path)
-        let tail = new Tail(path, '\n')
+        let tail = new Tail(path, split || '\n')
         tail.on('line', this.parseLogLine.bind(this))
         tail.on('error', (err) => {
             console.error('Error', err)
@@ -93,7 +93,7 @@ module.exports = class PromLog {
             return
         }
 
-        debug('creating metric %s %s', type, data.name)
+        debug('create metric %s %s', type, data.name)
 
         let createFunction = 'create' +
             type.charAt(0).toUpperCase() + type.substring(1)

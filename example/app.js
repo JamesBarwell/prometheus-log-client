@@ -6,13 +6,24 @@ const promLog = new PromLog()
 // Expose Prometheus HTTP interface
 promLog.listen(6754)
 
+// Safely parse JSON
+const getJson = raw => {
+    let json
+    try {
+        return JSON.parse(raw)
+    } catch (e) {
+        // throw away unparsable lines
+        return null
+    }
+}
+
 // Match all log lines
 promLog.createCounter(
-    /^(DEBUG|INFO|NOTICE|WARN|ERROR)/,
+    /^(WARN|ERROR)/,
     matches => {
         return {
-            name: 'log_lines',
-            help: 'Count of total app log lines',
+            name: 'fail_log_lines',
+            help: 'Count of total error and warn log lines',
             labels: {
                 level: matches[1].toLowerCase()
             }
@@ -24,11 +35,8 @@ promLog.createCounter(
 promLog.createCounter(
     /[A-Z]+ http.request.end (.*)/,
     matches => {
-        let json
-        try {
-            json = JSON.parse(matches[1])
-        } catch (e) {
-            // throw away unparsable lines
+        let json = getJson(matches[1])
+        if (!json) {
             return
         }
 
@@ -58,11 +66,8 @@ promLog.createGauge(
 promLog.createHistogram(
     /[A-Z]+ http.request.end (.*)/,
     matches => {
-        let json
-        try {
-            json = JSON.parse(matches[1])
-        } catch (e) {
-            // throw away unparsable lines
+        let json = getJson(matches[1])
+        if (!json) {
             return
         }
 
