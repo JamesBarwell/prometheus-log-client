@@ -7,7 +7,12 @@ It is intended for use with applications that already provide logging, and where
 
 ## How to use
 
-See `example/app.js`
+Install from npm:
+```js
+npm install prometheus-log-client
+```
+
+See `example/app.js` for full details.
 
 ## Sample output
 
