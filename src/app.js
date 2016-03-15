@@ -15,13 +15,11 @@ module.exports = class PromLog {
         this.client.createServer(port)
     }
 
-    watch(path, split) {
+    watch(path, split, onError) {
         debug('tailing logs at: %s', path)
         let tail = new Tail(path, split || '\n')
         tail.on('line', this.parseLogLine.bind(this))
-        tail.on('error', (err) => {
-            console.error('Error', err)
-        })
+        tail.on('error', onError || () => {})
         tail.watch()
     }
 
@@ -29,11 +27,8 @@ module.exports = class PromLog {
         this.matchers
         // Match line
         .map(matcher => {
-            return {
-                result: line.match(matcher.regex),
-                callback: matcher.callback,
-                type: matcher.type
-            }
+            matcher.result = line.match(matcher.regex)
+            return matcher
         })
         // Remove non-matches
         .filter(matcher => {
@@ -76,11 +71,11 @@ module.exports = class PromLog {
         let labels = data.labels || {}
         let value = data.value || null
 
-        debug('increment metric %s %s', type, data.name)
+        debug('update metric %s %s', type, data.name)
         this.upsertMetric(type, data)
 
         if (type === 'counter') {
-            this.metrics[data.name].increment(labels)
+            this.metrics[data.name].increment(labels, value || 1)
         } else if (type === 'gauge') {
             this.metrics[data.name].set(labels, value)
         } else if (type === 'histogram') {

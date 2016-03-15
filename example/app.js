@@ -81,4 +81,6 @@ promLog.createHistogram(
 )
 
 // Tail app logs
-promLog.watch('./test.log')
+promLog.watch('./test.log', '\n', (err) => {
+    console.warn(err)
+})
