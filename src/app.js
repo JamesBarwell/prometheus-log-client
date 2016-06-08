@@ -4,23 +4,29 @@ const debug = require('debug')('prometheus-logs')
 const Prometheus = require('prometheus-client-js')
 
 module.exports = class PromLog {
-    constructor() {
+
+    constructor(tailInterval) {
         this.client = new Prometheus()
         this.matchers = []
         this.metrics = {}
+        this.tailInterval = tailInterval || 500;
     }
 
     listen(port) {
         debug('http server listening on %s', port)
-        this.client.createServer(port)
+        this.server = this.client.createServer(port)
     }
 
     watch(path, split, onError) {
         debug('tailing logs at: %s', path)
-        let tail = new Tail(path, split || '\n')
-        tail.on('line', this.parseLogLine.bind(this))
-        tail.on('error', onError || () => {})
-        tail.watch()
+        this.tail = new Tail(
+            path,
+            split || '\n',
+            { interval: this.tailInterval }
+        )
+        this.tail.on('line', this.parseLogLine.bind(this))
+        this.tail.on('error', onError || function() {})
+        this.tail.watch()
     }
 
     parseLogLine(line) {
@@ -36,8 +42,7 @@ module.exports = class PromLog {
         })
         // Get metric update
         .map(matcher => {
-            var update;
-
+            let update;
             try {
                 update = matcher.callback(matcher.result);
             } catch (e) {
