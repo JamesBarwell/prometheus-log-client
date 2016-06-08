@@ -36,10 +36,22 @@ module.exports = class PromLog {
         })
         // Get metric update
         .map(matcher => {
+            var update;
+
+            try {
+                update = matcher.callback(matcher.result);
+            } catch (e) {
+                return null;
+            }
+
             return {
-                update: matcher.callback(matcher.result),
+                update: update,
                 type: matcher.type
             }
+        })
+        // Remove any bad matches
+        .filter(matcher => {
+            return matcher !== null;
         })
         // Update counters
         .forEach(matcher => {
@@ -68,6 +80,10 @@ module.exports = class PromLog {
     }
 
     updateMetric(type, data) {
+        if (!data) {
+            return;
+        }
+
         let labels = data.labels || {}
         let value = data.value || null
 
