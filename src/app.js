@@ -29,6 +29,16 @@ module.exports = class PromLog {
         this.tail.watch()
     }
 
+    stop() {
+        if (this.tail) {
+            this.tail.unwatch();
+        }
+
+        if (this.server) {
+            this.server.close();
+        }
+    }
+
     parseLogLine(line) {
         this.matchers
         // Match line
