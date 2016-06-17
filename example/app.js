@@ -1,10 +1,10 @@
 'use strict'
 const PromLog = require('../index')
 
-const promLog = new PromLog()
+const promLog = new PromLog(6754)
 
 // Expose Prometheus HTTP interface
-promLog.listen(6754)
+promLog.listen()
 
 // Safely parse JSON
 const getJson = raw => {

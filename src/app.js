@@ -5,16 +5,18 @@ const Prometheus = require('prometheus-client-js')
 
 module.exports = class PromLog {
 
-    constructor(tailInterval) {
-        this.client = new Prometheus()
+    constructor(port, tailInterval) {
+        this.port = port || 6754
+        this.tailInterval = tailInterval || 500;
+
+        this.client = new Prometheus({ port: this.port })
         this.matchers = []
         this.metrics = {}
-        this.tailInterval = tailInterval || 500;
     }
 
-    listen(port) {
-        debug('http server listening on %s', port)
-        this.server = this.client.createServer(port)
+    listen() {
+        debug('http server listening on %s', this.port)
+        this.server = this.client.createServer(true)
     }
 
     watch(path, split, onError) {
