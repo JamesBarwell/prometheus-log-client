@@ -1,6 +1,6 @@
 {
   "name": "prometheus-log-client",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Build Prometheus metrics from application logs",
   "main": "index.js",
   "scripts": {
