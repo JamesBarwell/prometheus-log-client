@@ -2,6 +2,7 @@
 const Tail = require('always-tail')
 const debug = require('debug')('prometheus-logs')
 const Prometheus = require('prometheus-client-js')
+const http = require('http')
 
 module.exports = class PromLog {
 
@@ -9,14 +10,16 @@ module.exports = class PromLog {
         this.port = port || 6754
         this.tailInterval = tailInterval || 500;
 
-        this.client = new Prometheus({ port: this.port })
+        this.client = new Prometheus()
         this.matchers = []
         this.metrics = {}
     }
 
     listen() {
-        debug('http server listening on %s', this.port)
-        this.server = this.client.createServer(true)
+        this.server = http.createServer(this.client.httpHandler())
+        this.server.listen(this.port, () => {
+            debug('http server listening on %s', this.port)
+        })
     }
 
     watch(path, split, onError) {
