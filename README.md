@@ -12,7 +12,31 @@ Install from npm:
 npm install prometheus-log-client
 ```
 
-See `example/app.js` for full details.
+```js
+const PromLog = require('prometheus-log-client')
+const promLog = new PromLog(6754)
+
+promLog.listen()
+
+promLog.createCounter(
+    /^(WARN|ERROR)/, // regex to match again
+    matches => { // how to process the matches
+        return {
+            name: 'fail_log_lines',
+            help: 'Count of total error and warn log lines',
+            labels: {
+                level: matches[1].toLowerCase()
+            }
+        }
+    }
+)
+
+promLog.watch('./test.log', '\n', (err) => {
+    console.warn(err)
+})
+```
+
+See `example/app.js` for a full working example.
 
 ## Sample output
 
